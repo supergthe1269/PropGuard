@@ -18,8 +18,8 @@ Instead of relying on static perimeter firewalls or blunt binary isolation, Prop
 - [Architecture Overview](#architecture-overview)
 - [Network Topology & Zones](#network-topology--zones)
 - [Mathematical Formulation](#mathematical-formulation)
-  - [1. Behavioral Trust Estimation ($T_{\text{own}}$)](#1-behavioral-trust-estimation-t_textown)
-  - [2. Relational Risk Propagation ($T_{\text{effective}}$)](#2-relational-risk-propagation-t_texteffective)
+  - [1. Behavioral Trust Estimation (T_own)](#1-behavioral-trust-estimation-t_own)
+  - [2. Relational Risk Propagation (T_effective)](#2-relational-risk-propagation-t_effective)
   - [3. Feature Attribution & Graduated Mitigation Mapping](#3-feature-attribution--graduated-mitigation-mapping)
 - [Repository Structure](#repository-structure)
 - [Prerequisites & Installation](#prerequisites--installation)
@@ -119,11 +119,19 @@ Switches `s1` (DMZ) and `s2` (Corp) are interconnected through `s3` (Core aggreg
 
 ## Mathematical Formulation
 
-### 1. Behavioral Trust Estimation ($T_{\text{own}}$)
+### 1. Behavioral Trust Estimation (T_own)
 
 Each active network entity $v \in \mathcal{V}$ is characterized by a dynamic telemetry feature vector $\mathbf{x}_v \in \mathbb{R}^6$:
 
-$$\mathbf{x}_v = \left[ \text{packet\_rate}, \, \text{byte\_rate}, \, \text{syn\_ack\_ratio}, \, \text{dst\_port\_diversity}, \, \text{flow\_duration\_avg}, \, \text{out\_in\_byte\_ratio} \right]$$
+$$\mathbf{x}_v = \left[ \text{packet rate}, \, \text{byte rate}, \, \text{SYN/ACK ratio}, \, \text{port diversity}, \, \text{flow duration}, \, \text{out/in ratio} \right]$$
+
+Where each component corresponds to normalized real-time telemetry metrics:
+* **packet rate** (`packet_rate`): Transmission packet frequency ($\text{pkts/sec}$)
+* **byte rate** (`byte_rate`): Aggregate traffic throughput ($\text{bytes/sec}$)
+* **SYN/ACK ratio** (`syn_ack_ratio`): Ratio of TCP SYN to ACK packets (reconnaissance / flood indicator)
+* **port diversity** (`dst_port_diversity`): Target destination port entropy (horizontal / vertical scanning)
+* **flow duration** (`flow_duration_avg`): Average lifetime of active connections ($\text{sec}$)
+* **out/in ratio** (`out_in_byte_ratio`): Ratio of egress to ingress volume (data exfiltration indicator)
 
 Inputs are normalized against the calibrated enterprise baseline distribution:
 
@@ -131,7 +139,7 @@ $$\tilde{\mathbf{x}}_v = \frac{\mathbf{x}_v - \boldsymbol{\mu}}{\boldsymbol{\sig
 
 A two-layer GraphSAGE inductive network aggregates localized topological structures across communication edges $\mathcal{E}$:
 
-$$\mathbf{h}_v^{(k)} = \text{ReLU}\left( \mathbf{W}^{(k)} \cdot \left[ \mathbf{h}_v^{(k-1)} \,\Vert{}\, \frac{1}{\vert{}\mathcal{N}(v)\vert{}} \sum_{u \in \mathcal{N}(v)} \mathbf{h}_u^{(k-1)} \right] \right)$$
+$$\mathbf{h}_v^{(k)} = \operatorname{ReLU}\left( \mathbf{W}^{(k)} \cdot \left[ \mathbf{h}_v^{(k-1)} \,\|\, \frac{1}{|\mathcal{N}(v)|} \sum_{u \in \mathcal{N}(v)} \mathbf{h}_u^{(k-1)} \right] \right)$$
 
 The final linear projection and sigmoid readout maps node embeddings to an intrinsic behavioral trust score:
 
@@ -139,7 +147,7 @@ $$T_{\text{own}}(v) = \sigma\left( \mathbf{W}_{\text{out}} \mathbf{h}_v^{(2)} + 
 
 ---
 
-### 2. Relational Risk Propagation ($T_{\text{effective}}$)
+### 2. Relational Risk Propagation (T_effective)
 
 Host compromise does not exist in isolation. When host $u$ exhibits malicious behavior, adjacent communicating hosts face lateral contagion. Risk propagates across weighted communication edges $w(u, v)$ over $K$ convergence steps:
 
@@ -156,7 +164,7 @@ Where:
 
 When $T_{\text{effective}}(v) < \tau$ (default $\tau = 0.60$), the root cause is extracted via relative marginal feature deviation against the benign reference profile $\mathbf{b}$:
 
-$$\phi_i(v) = w_i \cdot \frac{\max(0, \, x_{v,i} - b_i)}{b_i + \epsilon}, \quad d^* = \arg\max_i \phi_i(v)$$
+$$\phi_i(v) = w_i \cdot \frac{\max(0, \, x_{v,i} - b_i)}{b_i + \epsilon}, \quad d^* = \operatorname{argmax}_i \phi_i(v)$$
 
 The policy engine executes a proportionate OpenFlow response based on the dominant factor $d^*$:
 
