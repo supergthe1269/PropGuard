@@ -2,7 +2,7 @@
 set -e
 
 SESSION="propguard"
-PROJECT_DIR="$HOME/propguard"
+PROJECT_DIR="${PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 
 # 1. Check for tmux installation
 if ! command -v tmux &> /dev/null; then

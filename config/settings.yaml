@@ -1,0 +1,60 @@
+# PropGuard Configuration Settings
+
+controller:
+  host: "127.0.0.1"
+  ofp_port: 6653
+  rest_port: 8080
+  api_prefix: "/propguard"
+  poll_interval_sec: 2.0
+
+dashboard:
+  host: "0.0.0.0"
+  port: 5000
+
+propagation:
+  alpha: 1.0              # Baseline trust conservation parameter (prevents unprovoked trust decay)
+  beta: 0.50              # Contagion transmission factor for neighboring risk
+  max_iterations: 10      # Maximum convergence iterations
+  convergence_tol: 0.0001 # Convergence tolerance (delta threshold)
+
+policy:
+  trust_threshold: 0.60          # Threshold below which mitigation is triggered
+  high_severity_threshold: 0.25  # Severe compromise threshold (triggers full isolation)
+  quarantine_sink_ip: "10.0.3.99"
+
+features:
+  names:
+    - "packet_rate"
+    - "byte_rate"
+    - "syn_ack_ratio"
+    - "dst_port_diversity"
+    - "flow_duration_avg"
+    - "out_in_byte_ratio"
+  weights:
+    syn_ack_ratio: 3.0
+    dst_port_diversity: 2.5
+    packet_rate: 2.0
+    byte_rate: 1.5
+    out_in_byte_ratio: 1.2
+    flow_duration_avg: 0.5
+  baseline: [10.0, 1500.0, 1.0, 0.2, 12.0, 1.1]
+
+zones:
+  DMZ:
+    switch: "s1"
+    subnet: "10.0.1.0/16"
+    hosts:
+      h1: "10.0.1.10"
+      h2: "10.0.1.20"
+  Corp:
+    switch: "s2"
+    subnet: "10.0.2.0/16"
+    hosts:
+      h3: "10.0.2.10"
+      h4: "10.0.2.20"
+  Core:
+    switch: "s3"
+    subnet: "10.0.3.0/16"
+    hosts:
+      h5: "10.0.3.10"
+      h6_sink: "10.0.3.99"
