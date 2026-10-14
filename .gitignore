@@ -1,0 +1,20 @@
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Runtime / Logs
+*.log
+*.pid
+.cache/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
