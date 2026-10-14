@@ -2,212 +2,899 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>PropGuard Control Plane</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PropGuard — Zero-Trust SDN SecOps Console</title>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- D3.js v7 CDN -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <style>
-    body { background-color: #0d1117; color: #c9d1d9; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
-    .node circle { stroke-width: 2.5px; transition: fill 0.3s, stroke 0.3s; }
-    .link { stroke: #30363d; stroke-opacity: 0.8; }
-    .pulse-risk { animation: pulseRing 1.5s infinite; }
-    @keyframes pulseRing {
-      0% { r: 18; stroke-opacity: 0.9; }
-      50% { r: 25; stroke-opacity: 0.3; }
-      100% { r: 18; stroke-opacity: 0.9; }
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#ecfeff',
+              400: '#22d3ee',
+              500: '#06b6d4',
+              600: '#0891b2',
+              900: '#164e63',
+              950: '#083344',
+            }
+          }
+        }
+      }
     }
+  </script>
+  <style>
+    body {
+      background-color: #090d16;
+      color: #e2e8f0;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(51, 65, 85, 0.6);
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(51, 65, 85, 0.5);
+    }
+    .glow-cyan {
+      box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.35);
+    }
+    .glow-rose {
+      box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.45);
+    }
+    .glow-amber {
+      box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.4);
+    }
+    .pulse-ring-rose {
+      animation: pulseRose 2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+    .pulse-ring-amber {
+      animation: pulseAmber 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+    }
+    @keyframes pulseRose {
+      0% { r: 18; opacity: 0.9; stroke-width: 2px; }
+      70% { r: 36; opacity: 0; stroke-width: 6px; }
+      100% { r: 18; opacity: 0; stroke-width: 0px; }
+    }
+    @keyframes pulseAmber {
+      0% { r: 18; opacity: 0.8; stroke-width: 2px; }
+      70% { r: 32; opacity: 0; stroke-width: 5px; }
+      100% { r: 18; opacity: 0; stroke-width: 0px; }
+    }
+    .link-flow {
+      stroke-dasharray: 6 4;
+      animation: dashFlow 1.5s linear infinite;
+    }
+    @keyframes dashFlow {
+      from { stroke-dashoffset: 20; }
+      to { stroke-dashoffset: 0; }
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
   </style>
 </head>
-<body class="p-6">
-  <header class="flex justify-between items-center border-b border-gray-800 pb-4 mb-6">
-    <div>
-      <h1 class="text-2xl font-bold text-white tracking-wide flex items-center gap-2">
-        <span class="inline-block w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
-        PropGuard Defense Console
-      </h1>
-      <p class="text-xs text-gray-400 mt-1">Graph-Propagated Zero-Trust SDN Telemetry & Explanation Engine</p>
+<body class="min-h-screen p-4 lg:p-6 flex flex-col gap-5">
+
+  <!-- ================= TOP HEADER BAR ================= -->
+  <header class="glass-panel rounded-2xl px-6 py-4 flex flex-wrap justify-between items-center gap-4 glow-cyan">
+    <div class="flex items-center gap-3.5">
+      <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-600 via-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+        <svg class="w-6 h-6 text-gray-950 font-bold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.3" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      </div>
+      <div>
+        <div class="flex items-center gap-2.5">
+          <h1 class="text-xl font-bold tracking-tight text-white font-mono flex items-center gap-2">
+            PropGuard <span class="text-cyan-400">SecOps</span>
+          </h1>
+          <span class="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/80">
+            Zero-Trust SDN Fabric
+          </span>
+        </div>
+        <p class="text-xs text-gray-400 mt-0.5">Graph Neural Network Behavioral Scoring &bull; Relational Contagion Propagation &bull; XAI Root Cause</p>
+      </div>
     </div>
-    <div id="connection-badge" class="text-xs px-3 py-1 bg-emerald-950 text-emerald-400 border border-emerald-800 rounded-md font-mono">
-      SYSTEM ACTIVE
+
+    <!-- Right System Health Indicators -->
+    <div class="flex items-center gap-3 font-mono text-xs">
+      <div class="glass-card px-3 py-1.5 rounded-lg flex items-center gap-2 text-gray-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-gray-400">OF 1.3:</span>
+        <span class="text-emerald-400 font-semibold">Port 6653</span>
+      </div>
+      <div class="glass-card px-3 py-1.5 rounded-lg flex items-center gap-2 text-gray-300">
+        <span class="text-gray-400">REST API:</span>
+        <span class="text-cyan-400 font-semibold">Port 8080</span>
+      </div>
+      <div id="live-indicator" class="glass-card px-3 py-1.5 rounded-lg flex items-center gap-2 border-emerald-500/40 text-emerald-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span>ENGINE LIVE</span>
+      </div>
+      <button id="btn-pause-stream" class="glass-card px-3 py-1.5 rounded-lg hover:bg-slate-700/60 transition flex items-center gap-1.5 text-gray-300" title="Pause live polling">
+        <svg id="icon-pause" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        <span id="label-pause">PAUSE</span>
+      </button>
     </div>
   </header>
 
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Graph Canvas Viewport -->
-    <div class="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-4 shadow-lg flex flex-col">
-      <div class="flex justify-between items-center mb-3">
-        <span class="text-sm font-semibold uppercase tracking-wider text-gray-300">Live Network Adjacency & Risk Spread</span>
-        <div class="flex items-center gap-4 text-xs">
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Trust &gt; 0.60</span>
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Contagion Exposure</span>
-          <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Compromised Host</span>
+  <!-- ================= EXECUTIVE KPI METRIC CARDS ================= -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <!-- KPI 1: Network Health Score -->
+    <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+      <div>
+        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Fabric Health</span>
+        <div class="flex items-baseline gap-2 mt-1">
+          <span id="kpi-health-val" class="text-2xl font-bold font-mono text-emerald-400">--</span>
+          <span class="text-xs text-gray-500">/ 1.00</span>
+        </div>
+        <div class="text-[11px] text-gray-400 mt-1 flex items-center gap-1">
+          <span>Target baseline:</span> <span class="text-cyan-400 font-semibold">&ge; 0.60</span>
         </div>
       </div>
-      <div id="graph-container" class="w-full h-[520px] bg-black/40 rounded-lg flex items-center justify-center border border-gray-800/60 overflow-hidden"></div>
+      <div class="relative w-12 h-12 flex items-center justify-center">
+        <svg class="w-12 h-12 transform -rotate-90">
+          <circle cx="24" cy="24" r="20" stroke="#1e293b" stroke-width="4" fill="transparent" />
+          <circle id="kpi-health-ring" cx="24" cy="24" r="20" stroke="#10b981" stroke-width="4" fill="transparent" stroke-dasharray="125.6" stroke-dashoffset="20" stroke-linecap="round" class="transition-all duration-700" />
+        </svg>
+        <span id="kpi-health-pct" class="absolute text-[10px] font-bold font-mono text-white">--%</span>
+      </div>
     </div>
 
-    <!-- Telemetry Inspector & Enforcement Logs -->
-    <div class="flex flex-col gap-6">
-      <!-- Selected Host Details -->
-      <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 shadow-lg">
-        <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-3">Node Telemetry Inspector</h2>
-        <div id="node-inspector" class="text-xs space-y-2 text-gray-400">
-          <p class="italic">Click a host on the graph to inspect own vs. effective trust breakdown.</p>
+    <!-- KPI 2: Endpoint Posture Breakdown -->
+    <div class="glass-panel p-4 rounded-xl flex flex-col justify-between">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Host Status</span>
+        <span id="kpi-total-hosts" class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-gray-300">6 Monitored</span>
+      </div>
+      <!-- Stacked Proportional Bar -->
+      <div class="w-full bg-slate-800 rounded-full h-2 my-2 flex overflow-hidden">
+        <div id="bar-healthy" class="bg-emerald-500 h-full transition-all duration-500" style="width: 60%"></div>
+        <div id="bar-contagion" class="bg-amber-500 h-full transition-all duration-500" style="width: 20%"></div>
+        <div id="bar-compromised" class="bg-rose-500 h-full transition-all duration-500" style="width: 20%"></div>
+      </div>
+      <div class="flex justify-between text-[11px] font-mono">
+        <span class="text-emerald-400"><span id="cnt-healthy">--</span> Healthy</span>
+        <span class="text-amber-400"><span id="cnt-contagion">--</span> At-Risk</span>
+        <span class="text-rose-400"><span id="cnt-compromised">--</span> Isolated</span>
+      </div>
+    </div>
+
+    <!-- KPI 3: Active SDN Mitigations -->
+    <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+      <div>
+        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Active SDN Policies</span>
+        <div class="flex items-baseline gap-2 mt-1">
+          <span id="kpi-mitigations-val" class="text-2xl font-bold font-mono text-cyan-400">--</span>
+          <span class="text-xs text-gray-500">Rules Active</span>
+        </div>
+        <div class="text-[11px] text-gray-400 mt-1 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+          <span>Graduated 3-Tier Mitigation</span>
         </div>
       </div>
+      <div class="w-10 h-10 rounded-lg bg-cyan-950/60 border border-cyan-800/60 flex items-center justify-center text-cyan-400 font-bold">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      </div>
+    </div>
 
-      <!-- Live Enforcement Drawer -->
-      <div class="bg-gray-900 border border-gray-800 rounded-xl p-4 shadow-lg flex-1 flex flex-col">
-        <h2 class="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-3">SDN OpenFlow Enforcement Stream</h2>
-        <div id="logs-container" class="space-y-2.5 overflow-y-auto max-h-[300px] text-xs pr-1">
-          <p class="text-gray-500 italic">Listening for enforcement actions...</p>
+    <!-- KPI 4: Control Loop & Latency -->
+    <div class="glass-panel p-4 rounded-xl flex items-center justify-between">
+      <div>
+        <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">Decision Latency</span>
+        <div class="flex items-baseline gap-2 mt-1">
+          <span class="text-2xl font-bold font-mono text-emerald-400">0.30</span>
+          <span class="text-xs text-gray-500">ms avg</span>
         </div>
+        <div class="text-[11px] text-gray-400 mt-1 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>Sub-Millisecond SDN Loop</span>
+        </div>
+      </div>
+      <div class="w-10 h-10 rounded-lg bg-emerald-950/60 border border-emerald-800/60 flex items-center justify-center text-emerald-400 font-bold">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
       </div>
     </div>
   </div>
 
-  <script>
-    const width = document.getElementById('graph-container').clientWidth;
-    const height = 520;
-    let selectedNodeId = null;
+  <!-- ================= INTERACTIVE THREAT SIMULATOR TOOLBAR ================= -->
+  <div class="glass-panel rounded-xl px-5 py-3 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5 font-mono">
+        <svg class="w-4 h-4 text-cyan-400 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Threat Simulation Studio:
+      </span>
+      <span class="text-xs text-gray-400 hidden sm:inline">Inject real-time attack telemetry to test graduated containment:</span>
+    </div>
 
+    <div class="flex flex-wrap items-center gap-2">
+      <button onclick="injectAttack('scan')" id="btn-mode-scan" class="px-3 py-1.5 rounded-lg text-xs font-semibold font-mono border transition flex items-center gap-1.5 bg-slate-800/80 hover:bg-amber-950/80 hover:text-amber-300 hover:border-amber-700 text-gray-300 border-slate-700">
+        <span>🚀</span> Recon Port Scan
+      </button>
+
+      <button onclick="injectAttack('exfil')" id="btn-mode-exfil" class="px-3 py-1.5 rounded-lg text-xs font-semibold font-mono border transition flex items-center gap-1.5 bg-slate-800/80 hover:bg-rose-950/80 hover:text-rose-300 hover:border-rose-700 text-gray-300 border-slate-700">
+        <span>⚡</span> Data Exfiltration Burst
+      </button>
+
+      <button onclick="injectAttack('contagion')" id="btn-mode-contagion" class="px-3 py-1.5 rounded-lg text-xs font-semibold font-mono border transition flex items-center gap-1.5 bg-slate-800/80 hover:bg-purple-950/80 hover:text-purple-300 hover:border-purple-700 text-gray-300 border-slate-700">
+        <span>🛡️</span> Lateral Contagion
+      </button>
+
+      <button onclick="injectAttack('benign')" id="btn-mode-benign" class="px-3 py-1.5 rounded-lg text-xs font-semibold font-mono border transition flex items-center gap-1.5 bg-slate-800/80 hover:bg-emerald-950/80 hover:text-emerald-300 hover:border-emerald-700 text-gray-300 border-slate-700">
+        <span>🔄</span> Reset Baseline
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MAIN WORKSPACE: GRAPH & TELEMETRY ================= -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+
+    <!-- LEFT: D3.js Network Topology (8 cols) -->
+    <div class="lg:col-span-7 xl:col-span-8 glass-panel rounded-2xl p-5 flex flex-col justify-between shadow-2xl relative">
+      <!-- Top Graph Control Header -->
+      <div class="flex flex-wrap justify-between items-center gap-2 mb-3 z-10">
+        <div class="flex items-center gap-2">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-white font-mono flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+            Dynamic Adjacency & Risk Spread
+          </h2>
+        </div>
+
+        <!-- Legend -->
+        <div class="flex flex-wrap items-center gap-3 text-xs font-mono">
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Safe (&ge;0.60)</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> At-Risk (0.25-0.59)</span>
+          <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Compromised (&lt;0.25)</span>
+        </div>
+      </div>
+
+      <!-- Graph Container Canvas -->
+      <div id="graph-container" class="w-full h-[560px] bg-black/40 rounded-xl relative border border-slate-800/80 overflow-hidden flex items-center justify-center">
+        <!-- Floating Canvas Controls -->
+        <div class="absolute top-3 right-3 flex flex-col gap-1.5 z-20">
+          <button id="btn-zoom-in" class="w-8 h-8 rounded-lg glass-card flex items-center justify-center hover:bg-slate-700 text-gray-200 transition text-sm font-bold shadow" title="Zoom In">+</button>
+          <button id="btn-zoom-out" class="w-8 h-8 rounded-lg glass-card flex items-center justify-center hover:bg-slate-700 text-gray-200 transition text-sm font-bold shadow" title="Zoom Out">&minus;</button>
+          <button id="btn-zoom-reset" class="w-8 h-8 rounded-lg glass-card flex items-center justify-center hover:bg-slate-700 text-gray-200 transition text-xs font-bold shadow" title="Reset View">&#x27F3;</button>
+        </div>
+
+        <!-- Floating Zone Labels Overlay -->
+        <div class="absolute bottom-3 left-4 flex gap-4 text-[11px] font-mono text-gray-400 z-10 pointer-events-none">
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-blue-500/80"></span> DMZ Zone (s1)</span>
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-purple-500/80"></span> Corp Zone (s2)</span>
+          <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded bg-emerald-500/80"></span> Core Zone (s3)</span>
+        </div>
+      </div>
+
+      <div class="mt-2 text-[11px] text-gray-500 font-mono flex justify-between">
+        <span>&bull; Drag nodes to pin &bull; Scroll to zoom &bull; Click any host to inspect telemetry & SHAP breakdown</span>
+        <span id="graph-status-text">Physics Live</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: Telemetry Inspector & Enforcement Logs (4 or 5 cols) -->
+    <div class="lg:col-span-5 xl:col-span-4 flex flex-col gap-5">
+
+      <!-- CARD 1: Node Telemetry & SHAP Inspector -->
+      <div class="glass-panel rounded-2xl p-5 shadow-xl flex flex-col gap-4">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono flex items-center gap-2">
+            <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Endpoint Telemetry & XAI Root Cause
+          </h2>
+          <span id="inspector-badge" class="text-[10px] font-mono px-2 py-0.5 rounded uppercase font-bold bg-slate-800 text-gray-400">No Target</span>
+        </div>
+
+        <!-- Node Inspector Dynamic Body -->
+        <div id="inspector-content" class="flex flex-col gap-3.5 text-xs">
+          <div class="text-center py-8 text-gray-500 italic font-mono">
+            Click on any host node in the topology graph to inspect live telemetry features and SHAP root cause attributions.
+          </div>
+        </div>
+
+        <!-- Manual SDN Operator Override Controls -->
+        <div id="override-controls" class="border-t border-slate-800 pt-3 hidden">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-gray-400 font-mono block mb-2">Direct SDN Policy Override:</span>
+          <div class="grid grid-cols-4 gap-1.5 font-mono text-[11px]">
+            <button onclick="dispatchOverride('rate_limit')" class="px-2 py-1.5 rounded bg-blue-950/70 border border-blue-800 hover:bg-blue-900 text-blue-300 font-bold transition">
+              Rate Limit
+            </button>
+            <button onclick="dispatchOverride('quarantine')" class="px-2 py-1.5 rounded bg-amber-950/70 border border-amber-800 hover:bg-amber-900 text-amber-300 font-bold transition">
+              Quarantine
+            </button>
+            <button onclick="dispatchOverride('isolate')" class="px-2 py-1.5 rounded bg-rose-950/70 border border-rose-800 hover:bg-rose-900 text-rose-300 font-bold transition">
+              Isolate
+            </button>
+            <button onclick="dispatchOverride('healthy')" class="px-2 py-1.5 rounded bg-emerald-950/70 border border-emerald-800 hover:bg-emerald-900 text-emerald-300 font-bold transition">
+              Restore
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: SDN OpenFlow Enforcement Stream -->
+      <div class="glass-panel rounded-2xl p-5 shadow-xl flex-1 flex flex-col gap-3 min-h-[320px]">
+        <div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
+          <div class="flex items-center gap-2">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-white font-mono flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+              OpenFlow Audit Stream
+            </h2>
+            <span id="log-count-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 font-mono text-cyan-300">0</span>
+          </div>
+
+          <div class="flex items-center gap-1">
+            <button onclick="clearLogs()" class="text-[10px] text-gray-400 hover:text-rose-400 font-mono transition px-2 py-0.5 rounded hover:bg-slate-800">
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter Tags -->
+        <div class="flex items-center gap-1 font-mono text-[11px]">
+          <button onclick="filterLogs('ALL')" class="log-filter-btn px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800" data-filter="ALL">ALL</button>
+          <button onclick="filterLogs('ISOLATE')" class="log-filter-btn px-2 py-0.5 rounded text-gray-400 hover:text-white" data-filter="ISOLATE">ISOLATE</button>
+          <button onclick="filterLogs('QUARANTINE')" class="log-filter-btn px-2 py-0.5 rounded text-gray-400 hover:text-white" data-filter="QUARANTINE">QUARANTINE</button>
+          <button onclick="filterLogs('RATE_LIMIT')" class="log-filter-btn px-2 py-0.5 rounded text-gray-400 hover:text-white" data-filter="RATE_LIMIT">RATE_LIMIT</button>
+        </div>
+
+        <!-- Scrollable Action Log Stream -->
+        <div id="logs-container" class="flex-1 space-y-2 overflow-y-auto max-h-[340px] pr-1 text-xs">
+          <div class="text-center py-10 text-gray-500 italic font-mono">
+            Awaiting OpenFlow graduated defense events...
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= JAVASCRIPT / D3.js LOGIC ================= -->
+  <script>
+    // Configuration & State
+    let isPaused = false;
+    let selectedNodeId = "10.0.2.10"; // Default to Corporate Workstation 1 (Attacker)
+    let currentFilter = "ALL";
+    let cachedState = null;
+
+    // Dimensions
+    const container = document.getElementById('graph-container');
+    const width = container.clientWidth || 700;
+    const height = 560;
+
+    // Setup D3 Canvas
     const svg = d3.select("#graph-container").append("svg")
       .attr("width", "100%")
       .attr("height", height)
       .attr("viewBox", [0, 0, width, height]);
 
-    const gLink = svg.append("g").attr("class", "links");
-    const gNode = svg.append("g").attr("class", "nodes");
-    const gLabel = svg.append("g").attr("class", "labels");
+    // Zoom & Pan Behavior
+    const gMain = svg.append("g").attr("class", "main-viewport");
 
+    const zoom = d3.zoom()
+      .scaleExtent([0.4, 2.5])
+      .on("zoom", (event) => {
+        gMain.attr("transform", event.transform);
+      });
+
+    svg.call(zoom);
+
+    // Zoom Button Handlers
+    document.getElementById("btn-zoom-in").addEventListener("click", () => {
+      svg.transition().duration(300).call(zoom.scaleBy, 1.25);
+    });
+    document.getElementById("btn-zoom-out").addEventListener("click", () => {
+      svg.transition().duration(300).call(zoom.scaleBy, 0.8);
+    });
+    document.getElementById("btn-zoom-reset").addEventListener("click", () => {
+      svg.transition().duration(400).call(zoom.transform, d3.zoomIdentity);
+    });
+
+    // Pause / Resume Stream
+    document.getElementById("btn-pause-stream").addEventListener("click", () => {
+      isPaused = !isPaused;
+      const label = document.getElementById("label-pause");
+      const indicator = document.getElementById("live-indicator");
+      if (isPaused) {
+        label.textContent = "RESUME";
+        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-amber-400"></span><span class="text-amber-300">PAUSED</span>';
+        indicator.className = "glass-card px-3 py-1.5 rounded-lg flex items-center gap-2 border-amber-500/40 text-amber-300";
+      } else {
+        label.textContent = "PAUSE";
+        indicator.innerHTML = '<span class="w-2 h-2 rounded-full bg-emerald-400"></span><span class="text-emerald-300">ENGINE LIVE</span>';
+        indicator.className = "glass-card px-3 py-1.5 rounded-lg flex items-center gap-2 border-emerald-500/40 text-emerald-300";
+        fetchState();
+      }
+    });
+
+    // Sub-layers inside Main Viewport
+    const gHulls = gMain.append("g").attr("class", "zone-hulls");
+    const gLinks = gMain.append("g").attr("class", "links");
+    const gLinkLabels = gMain.append("g").attr("class", "link-labels");
+    const gRings = gMain.append("g").attr("class", "pulse-rings");
+    const gNodes = gMain.append("g").attr("class", "nodes");
+    const gLabels = gMain.append("g").attr("class", "labels");
+
+    // Force Simulation Setup
     const simulation = d3.forceSimulation()
       .force("link", d3.forceLink().id(d => d.id).distance(140))
-      .force("charge", d3.forceManyBody().strength(-400))
-      .force("center", d3.forceCenter(width / 2, height / 2));
+      .force("charge", d3.forceManyBody().strength(-480))
+      .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("collision", d3.forceCollide().radius(45));
 
-    function getNodeColor(d) {
-      if (d.effective_trust < 0.3) return "#f43f5e"; // Rose / Malicious
-      if (d.effective_trust < 0.6) return "#f59e0b"; // Amber / Contagion
-      return "#10b981";                            // Emerald / Healthy
+    // Color Scales
+    function getNodeColor(effective_trust) {
+      if (effective_trust < 0.25) return "#f43f5e"; // Rose / Compromised
+      if (effective_trust < 0.60) return "#f59e0b"; // Amber / Contagion Risk
+      return "#10b981";                            // Emerald / Verified Healthy
     }
 
+    function getTierBadgeClass(tier) {
+      switch ((tier || '').toLowerCase()) {
+        case 'isolate': return 'bg-rose-950 text-rose-300 border-rose-800 shadow-rose-900/50';
+        case 'quarantine': return 'bg-amber-950 text-amber-300 border-amber-800 shadow-amber-900/50';
+        case 'rate_limit': return 'bg-blue-950 text-blue-300 border-blue-800 shadow-blue-900/50';
+        default: return 'bg-emerald-950 text-emerald-300 border-emerald-800 shadow-emerald-900/50';
+      }
+    }
+
+    // Drag behavior for nodes
+    function drag(simulation) {
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.2).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      }
+      function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+      }
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      }
+      return d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended);
+    }
+
+    // Update Node Inspector
     function updateInspector(node) {
       if (!node) return;
-      const el = document.getElementById("node-inspector");
-      const badgeStyle = node.tier === 'isolate' ? 'bg-rose-950 text-rose-300 border-rose-800' :
-                         node.tier === 'quarantine' ? 'bg-amber-950 text-amber-300 border-amber-800' :
-                         node.tier === 'rate_limit' ? 'bg-blue-950 text-blue-300 border-blue-800' :
-                         'bg-emerald-950 text-emerald-300 border-emerald-800';
+      selectedNodeId = node.id;
+      const el = document.getElementById("inspector-content");
+      const badge = document.getElementById("inspector-badge");
+      const overridePanel = document.getElementById("override-controls");
+
+      badge.textContent = `${node.tier.toUpperCase()}`;
+      badge.className = `text-[10px] font-mono px-2 py-0.5 rounded uppercase font-bold border ${getTierBadgeClass(node.tier)}`;
+      overridePanel.classList.remove("hidden");
+
+      // SHAP Feature Attributions Bar Chart
+      const attributions = node.attributions || {};
+      const features = node.features || {};
+
+      const attrBars = Object.entries(attributions).map(([feat, score]) => {
+        const pct = Math.min(100, Math.max(8, score * 100));
+        const isDominant = feat === node.reason;
+        const barColor = isDominant ? 'bg-rose-500' : 'bg-cyan-500';
+        const rawVal = features[feat] !== undefined ? features[feat] : '--';
+
+        return `
+          <div class="space-y-1">
+            <div class="flex justify-between items-center text-[11px] font-mono">
+              <span class="${isDominant ? 'text-rose-300 font-bold' : 'text-gray-400'}">${feat}: <span class="text-white">${rawVal}</span></span>
+              <span class="${isDominant ? 'text-rose-400 font-bold' : 'text-cyan-400'}">${score > 0 ? '+' : ''}${score}</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+              <div class="${barColor} h-full transition-all duration-500 rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
 
       el.innerHTML = `
-        <div class="border border-gray-800 p-3 rounded bg-black/30 space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="font-bold text-white text-sm">${node.label} (${node.id})</span>
-            <span class="text-[10px] px-2 py-0.5 border rounded uppercase font-semibold ${badgeStyle}">${node.tier}</span>
+        <!-- Host Banner -->
+        <div class="glass-card p-3 rounded-xl border border-slate-700/80 flex justify-between items-center">
+          <div>
+            <div class="text-sm font-bold text-white font-mono flex items-center gap-1.5">
+              <span>${node.label}</span>
+              <span class="text-xs text-gray-400">(${node.id})</span>
+            </div>
+            <div class="text-[11px] text-gray-400 mt-0.5">Security Zone: <span class="text-cyan-300 font-semibold">${node.zone}</span></div>
           </div>
-          <div class="grid grid-cols-2 gap-2 pt-2 border-t border-gray-800">
-            <div><span class="text-gray-500">Zone:</span> <span class="text-gray-300 font-semibold">${node.zone}</span></div>
-            <div><span class="text-gray-500">Root Cause:</span> <span class="text-gray-300 font-semibold">${node.reason}</span></div>
-            <div><span class="text-gray-500">Own Trust:</span> <span class="text-gray-300 font-semibold">${node.own_trust}</span></div>
-            <div><span class="text-gray-500">Effective Trust:</span> <span class="text-emerald-400 font-semibold">${node.effective_trust}</span></div>
+          <div class="text-right">
+            <div class="text-[10px] uppercase font-bold text-gray-400">Status</div>
+            <div class="text-xs font-bold font-mono ${node.effective_trust >= 0.6 ? 'text-emerald-400' : node.effective_trust >= 0.25 ? 'text-amber-400' : 'text-rose-400'}">
+              ${node.effective_trust >= 0.6 ? 'VERIFIED HEALTHY' : node.effective_trust >= 0.25 ? 'CONTAGION RISK' : 'COMPROMISED'}
+            </div>
+          </div>
+        </div>
+
+        <!-- Dual Trust Gauge Breakdown -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="glass-card p-3 rounded-xl border border-slate-700/60">
+            <div class="text-[10px] uppercase font-mono text-gray-400">Intrinsic Trust (T_own)</div>
+            <div class="text-lg font-bold font-mono text-white mt-0.5">${node.own_trust}</div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+              <div class="bg-cyan-400 h-full transition-all duration-500" style="width: ${Math.round(node.own_trust * 100)}%"></div>
+            </div>
+            <div class="text-[10px] text-gray-500 mt-1">GNN Node Telemetry</div>
+          </div>
+
+          <div class="glass-card p-3 rounded-xl border border-slate-700/60">
+            <div class="text-[10px] uppercase font-mono text-gray-400">Effective Trust (T_eff)</div>
+            <div class="text-lg font-bold font-mono text-emerald-400 mt-0.5">${node.effective_trust}</div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+              <div class="${node.effective_trust >= 0.6 ? 'bg-emerald-400' : node.effective_trust >= 0.25 ? 'bg-amber-400' : 'bg-rose-400'} h-full transition-all duration-500" style="width: ${Math.round(node.effective_trust * 100)}%"></div>
+            </div>
+            <div class="text-[10px] text-gray-500 mt-1">Relational Propagation</div>
+          </div>
+        </div>
+
+        <!-- Root Cause & Mitigation Rationale -->
+        <div class="glass-card p-3 rounded-xl border border-slate-700/60 text-[11px] font-mono space-y-1">
+          <div class="text-gray-400">Dominant Factor: <span class="text-amber-300 font-bold">${node.reason}</span></div>
+          <div class="text-gray-400">Mitigation: <span class="text-white">${node.rationale || 'Authorized baseline operations'}</span></div>
+        </div>
+
+        <!-- SHAP Marginal Feature Attribution Bars -->
+        <div class="glass-card p-3 rounded-xl border border-slate-700/60 space-y-2">
+          <div class="flex justify-between items-center text-[10px] font-bold uppercase tracking-wider text-gray-400 font-mono">
+            <span>XAI Attribution (Baseline Deviations)</span>
+            <span class="text-cyan-400">Marginal Delta</span>
+          </div>
+          <div class="space-y-2 pt-1">
+            ${attrBars || '<div class="text-gray-500 italic">Baseline clean. No anomalous feature deviations.</div>'}
           </div>
         </div>
       `;
     }
 
+    // Attack simulation trigger
+    async function injectAttack(mode) {
+      try {
+        const res = await fetch('/api/simulate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: mode, target: "10.0.2.10" })
+        });
+        if (res.ok) {
+          highlightSimulationBtn(mode);
+          fetchState();
+        }
+      } catch (e) {
+        console.error("Simulation dispatch failed:", e);
+      }
+    }
+
+    function highlightSimulationBtn(mode) {
+      ['scan', 'exfil', 'contagion', 'benign'].forEach(m => {
+        const btn = document.getElementById(`btn-mode-${m}`);
+        if (!btn) return;
+        if (m === mode) {
+          btn.classList.add('ring-2', 'ring-cyan-400', 'bg-cyan-950/80', 'text-cyan-300');
+        } else {
+          btn.classList.remove('ring-2', 'ring-cyan-400', 'bg-cyan-950/80', 'text-cyan-300');
+        }
+      });
+    }
+
+    // Manual Operator SDN Override
+    async function dispatchOverride(tier) {
+      if (!selectedNodeId) return;
+      try {
+        const res = await fetch('/api/override', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ target_ip: selectedNodeId, tier: tier })
+        });
+        if (res.ok) {
+          fetchState();
+        }
+      } catch (e) {
+        console.error("Override dispatch failed:", e);
+      }
+    }
+
+    // Clear Logs
+    async function clearLogs() {
+      try {
+        await fetch('/api/clear-logs', { method: 'POST' });
+        fetchState();
+      } catch (e) {
+        console.error("Clear logs failed:", e);
+      }
+    }
+
+    // Filter Logs
+    function filterLogs(filterType) {
+      currentFilter = filterType;
+      document.querySelectorAll('.log-filter-btn').forEach(btn => {
+        if (btn.getAttribute('data-filter') === filterType) {
+          btn.className = "log-filter-btn px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800";
+        } else {
+          btn.className = "log-filter-btn px-2 py-0.5 rounded text-gray-400 hover:text-white";
+        }
+      });
+      if (cachedState) renderLogs(cachedState.logs);
+    }
+
+    function renderLogs(logs) {
+      const container = document.getElementById("logs-container");
+      const badge = document.getElementById("log-count-badge");
+      if (!logs || logs.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-gray-500 italic font-mono">No enforcement actions recorded. Network operating within baseline.</div>';
+        badge.textContent = "0";
+        return;
+      }
+
+      badge.textContent = logs.length;
+      const filtered = currentFilter === 'ALL' ? logs : logs.filter(l => l.tier === currentFilter);
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="text-center py-6 text-gray-500 italic font-mono">No actions matching filter '${currentFilter}'</div>`;
+        return;
+      }
+
+      container.innerHTML = filtered.map(l => {
+        const isIsolate = l.tier === 'ISOLATE';
+        const isQuarantine = l.tier === 'QUARANTINE';
+        const isRateLimit = l.tier === 'RATE_LIMIT';
+
+        const colorClasses = isIsolate ? 'border-rose-900/60 bg-rose-950/30 text-rose-300' :
+                             isQuarantine ? 'border-amber-900/60 bg-amber-950/30 text-amber-300' :
+                             isRateLimit ? 'border-blue-900/60 bg-blue-950/30 text-blue-300' :
+                             'border-emerald-900/60 bg-emerald-950/30 text-emerald-300';
+
+        const icon = isIsolate ? '⛔' : isQuarantine ? '🛡️' : isRateLimit ? '⚡' : '💚';
+
+        return `
+          <div class="p-2.5 border rounded-xl ${colorClasses} font-mono flex flex-col gap-1 transition hover:border-slate-600">
+            <div class="flex justify-between items-center font-bold text-[11px]">
+              <span class="flex items-center gap-1.5">
+                <span>${icon}</span>
+                <span class="text-white">${l.target}</span>
+              </span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded border border-current font-bold uppercase">${l.tier}</span>
+            </div>
+            <div class="text-[11px] text-gray-300">${l.rationale || l.reason}</div>
+            <div class="flex justify-between text-[10px] text-gray-400 pt-0.5 border-t border-slate-800/60">
+              <span>Reason: <span class="text-amber-400">${l.reason}</span></span>
+              <span>[${l.time}] &bull; Trust: ${l.score}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Main State Fetch Loop
     async function fetchState() {
+      if (isPaused) return;
+
       try {
         const res = await fetch('/api/state');
         if (!res.ok) return;
         const data = await res.json();
+        cachedState = data;
 
-        // Update Log Stream
-        const logBox = document.getElementById("logs-container");
-        if (data.logs.length > 0) {
-          logBox.innerHTML = data.logs.map(l => {
-            const color = l.tier === 'ISOLATE' ? 'text-rose-400 border-rose-900 bg-rose-950/40' :
-                          l.tier === 'QUARANTINE' ? 'text-amber-400 border-amber-900 bg-amber-950/40' :
-                          l.tier === 'RATE_LIMIT' ? 'text-blue-400 border-blue-900 bg-blue-950/40' :
-                          'text-emerald-400 border-emerald-900 bg-emerald-950/40';
-            return `
-              <div class="p-2 border rounded ${color} font-mono flex flex-col gap-0.5">
-                <div class="flex justify-between font-bold">
-                  <span>[${l.time}] ${l.target}</span>
-                  <span>${l.tier}</span>
-                </div>
-                <div class="text-[11px] opacity-80">Reason: ${l.reason} (Score: ${l.score})</div>
-              </div>
-            `;
-          }).join('');
+        // 1. Update Executive KPIs
+        if (data.kpis) {
+          const k = data.kpis;
+          document.getElementById("kpi-health-val").textContent = k.avg_trust.toFixed(2);
+          const pct = Math.round(k.avg_trust * 100);
+          document.getElementById("kpi-health-pct").textContent = `${pct}%`;
+
+          // Circle dash offset: 125.6 is circumference (2 * pi * 20)
+          const offset = 125.6 - (125.6 * (pct / 100));
+          const ring = document.getElementById("kpi-health-ring");
+          ring.style.strokeDashoffset = offset;
+          ring.setAttribute("stroke", k.avg_trust >= 0.6 ? "#10b981" : k.avg_trust >= 0.25 ? "#f59e0b" : "#f43f5e");
+
+          document.getElementById("cnt-healthy").textContent = k.healthy_hosts;
+          document.getElementById("cnt-contagion").textContent = k.contagion_hosts;
+          document.getElementById("cnt-compromised").textContent = k.compromised_hosts;
+
+          const total = k.total_hosts || 6;
+          document.getElementById("bar-healthy").style.width = `${(k.healthy_hosts / total) * 100}%`;
+          document.getElementById("bar-contagion").style.width = `${(k.contagion_hosts / total) * 100}%`;
+          document.getElementById("bar-compromised").style.width = `${(k.compromised_hosts / total) * 100}%`;
+
+          document.getElementById("kpi-mitigations-val").textContent = k.active_mitigations;
+
+          highlightSimulationBtn(k.simulation_mode);
         }
 
-        // Update Node Inspector if selected
+        // 2. Update Enforcement Logs
+        renderLogs(data.logs);
+
+        // 3. Update Node Inspector
         if (selectedNodeId) {
           const selected = data.nodes.find(n => n.id === selectedNodeId);
           if (selected) updateInspector(selected);
         } else if (data.nodes.length > 0) {
-          updateInspector(data.nodes[2]); // Default to corporate workstation h3
+          updateInspector(data.nodes[2]); // Default to h3
         }
 
-        // D3 Links Update
-        const link = gLink.selectAll(".link")
-          .data(data.edges, d => `${d.source}-${d.target}`);
-        link.exit().remove();
-        const linkEnter = link.enter().append("line")
-          .attr("class", "link")
-          .attr("stroke-width", d => Math.min(6, Math.max(1.5, d.weight)));
-        const allLinks = linkEnter.merge(link);
-
-        // D3 Nodes Update
-        const node = gNode.selectAll(".node")
-          .data(data.nodes, d => d.id);
-        node.exit().remove();
-        const nodeEnter = node.enter().append("circle")
-          .attr("class", "node cursor-pointer")
-          .attr("r", 18)
-          .on("click", (event, d) => {
-            selectedNodeId = d.id;
-            updateInspector(d);
-          });
-        const allNodes = nodeEnter.merge(node)
-          .attr("fill", d => getNodeColor(d))
-          .attr("stroke", d => d.effective_trust < 0.6 ? "#ffffff" : "#065f46");
-
-        // D3 Labels Update
-        const label = gLabel.selectAll(".label")
-          .data(data.nodes, d => d.id);
-        label.exit().remove();
-        const labelEnter = label.enter().append("text")
-          .attr("class", "label text-[11px] fill-gray-300 font-bold pointer-events-none")
-          .attr("text-anchor", "middle")
-          .attr("dy", 32);
-        const allLabels = labelEnter.merge(label)
-          .text(d => `${d.label} (${d.effective_trust})`);
-
-        simulation.nodes(data.nodes);
-        simulation.force("link").links(data.edges);
-        simulation.alpha(0.3).restart();
-
-        simulation.on("tick", () => {
-          allLinks
-            .attr("x1", d => d.source.x)
-            .attr("y1", d => d.source.y)
-            .attr("x2", d => d.target.x)
-            .attr("y2", d => d.target.y);
-          allNodes
-            .attr("cx", d => d.x)
-            .attr("cy", d => d.y);
-          allLabels
-            .attr("x", d => d.x)
-            .attr("y", d => d.y);
-        });
+        // 4. Update D3 Topology Visualizer
+        updateTopology(data.nodes, data.edges);
 
       } catch (err) {
-        console.error("State poll failed:", err);
+        console.error("State polling error:", err);
       }
     }
 
+    // Update D3 Topology Elements
+    function updateTopology(nodes, edges) {
+      // Zone Convex Hull Grouping Data
+      const zoneColors = {
+        "DMZ": "rgba(59, 130, 246, 0.12)",
+        "Corp": "rgba(168, 85, 247, 0.12)",
+        "Core": "rgba(16, 185, 129, 0.12)"
+      };
+
+      // Edges Update
+      const link = gLinks.selectAll(".link")
+        .data(edges, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
+
+      link.exit().remove();
+
+      const linkEnter = link.enter().append("line")
+        .attr("class", d => `link ${d.weight > 3.0 ? 'link-flow stroke-rose-500' : 'stroke-slate-700'}`)
+        .attr("stroke-width", d => Math.min(6, Math.max(2, d.weight)))
+        .attr("stroke-opacity", 0.7);
+
+      const allLinks = linkEnter.merge(link)
+        .attr("class", d => `link ${d.weight > 3.0 ? 'link-flow stroke-rose-500' : 'stroke-slate-700'}`)
+        .attr("stroke-width", d => Math.min(6, Math.max(2, d.weight)));
+
+      // Pulse Rings for At-Risk / Compromised Nodes
+      const pulseNodes = nodes.filter(n => n.effective_trust < 0.60);
+      const ring = gRings.selectAll(".pulse-ring")
+        .data(pulseNodes, d => d.id);
+
+      ring.exit().remove();
+
+      const ringEnter = ring.enter().append("circle")
+        .attr("class", d => d.effective_trust < 0.25 ? "pulse-ring pulse-ring-rose stroke-rose-500 fill-none" : "pulse-ring pulse-ring-amber stroke-amber-500 fill-none");
+
+      const allRings = ringEnter.merge(ring)
+        .attr("class", d => d.effective_trust < 0.25 ? "pulse-ring pulse-ring-rose stroke-rose-500 fill-none" : "pulse-ring pulse-ring-amber stroke-amber-500 fill-none");
+
+      // Nodes Update
+      const node = gNodes.selectAll(".node-group")
+        .data(nodes, d => d.id);
+
+      node.exit().remove();
+
+      const nodeEnter = node.enter().append("g")
+        .attr("class", "node-group cursor-pointer")
+        .call(drag(simulation))
+        .on("click", (event, d) => {
+          updateInspector(d);
+        });
+
+      // Outer glow circle
+      nodeEnter.append("circle")
+        .attr("class", "node-glow")
+        .attr("r", 24)
+        .attr("fill", "transparent")
+        .attr("stroke-width", 2)
+        .attr("stroke-dasharray", "3 2");
+
+      // Center Node Circle
+      nodeEnter.append("circle")
+        .attr("class", "node-body")
+        .attr("r", 17)
+        .attr("stroke", "#ffffff")
+        .attr("stroke-width", 2.5);
+
+      // Node Icon / Letter
+      nodeEnter.append("text")
+        .attr("class", "node-icon text-[10px] font-bold fill-white select-none pointer-events-none")
+        .attr("text-anchor", "middle")
+        .attr("dy", 4)
+        .text(d => d.label.split('_')[0] || 'H');
+
+      const allNodes = nodeEnter.merge(node);
+
+      allNodes.select(".node-body")
+        .transition().duration(400)
+        .attr("fill", d => getNodeColor(d.effective_trust))
+        .attr("stroke", d => selectedNodeId === d.id ? "#38bdf8" : "#ffffff")
+        .attr("stroke-width", d => selectedNodeId === d.id ? 3.5 : 2);
+
+      allNodes.select(".node-glow")
+        .attr("stroke", d => selectedNodeId === d.id ? "#38bdf8" : getNodeColor(d.effective_trust))
+        .attr("opacity", d => selectedNodeId === d.id ? 1 : 0.4);
+
+      // Node Labels
+      const label = gLabels.selectAll(".label-group")
+        .data(nodes, d => d.id);
+
+      label.exit().remove();
+
+      const labelEnter = label.enter().append("g")
+        .attr("class", "label-group pointer-events-none");
+
+      labelEnter.append("text")
+        .attr("class", "text-name text-[11px] font-bold font-mono fill-white text-center")
+        .attr("text-anchor", "middle")
+        .attr("dy", 32);
+
+      labelEnter.append("text")
+        .attr("class", "text-score text-[10px] font-mono fill-cyan-400 text-center")
+        .attr("text-anchor", "middle")
+        .attr("dy", 44);
+
+      const allLabels = labelEnter.merge(label);
+
+      allLabels.select(".text-name")
+        .text(d => d.label);
+
+      allLabels.select(".text-score")
+        .text(d => `T: ${d.effective_trust.toFixed(2)} [${d.tier.toUpperCase()}]`)
+        .attr("fill", d => d.effective_trust >= 0.6 ? "#34d399" : d.effective_trust >= 0.25 ? "#fbbf24" : "#f87171");
+
+      // Update Simulation Physics
+      simulation.nodes(nodes);
+      simulation.force("link").links(edges);
+
+      // Smooth gentle restart without aggressive jarring shake
+      simulation.alpha(0.12).restart();
+
+      simulation.on("tick", () => {
+        allLinks
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y);
+
+        allRings
+          .attr("cx", d => d.x)
+          .attr("cy", d => d.y);
+
+        allNodes
+          .attr("transform", d => `translate(${d.x},${d.y})`);
+
+        allLabels
+          .attr("transform", d => `translate(${d.x},${d.y})`);
+      });
+    }
+
+    // Start polling cycle
     fetchState();
-    setInterval(fetchState, 2000);
+    setInterval(fetchState, 2500);
   </script>
 </body>
 </html>
