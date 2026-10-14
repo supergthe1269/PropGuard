@@ -139,7 +139,7 @@ $$\tilde{\mathbf{x}}_v = \frac{\mathbf{x}_v - \boldsymbol{\mu}}{\boldsymbol{\sig
 
 A two-layer GraphSAGE inductive network aggregates localized topological structures across communication edges $\mathcal{E}$:
 
-$$\mathbf{h}_v^{(k)} = \operatorname{ReLU}\left( \mathbf{W}^{(k)} \cdot \left[ \mathbf{h}_v^{(k-1)} \,\|\, \frac{1}{|\mathcal{N}(v)|} \sum_{u \in \mathcal{N}(v)} \mathbf{h}_u^{(k-1)} \right] \right)$$
+$$\mathbf{h}_v^{(k)} = \mathrm{ReLU}\left( \mathbf{W}^{(k)} \cdot \left[ \mathbf{h}_v^{(k-1)} \,\|\, \frac{1}{|\mathcal{N}(v)|} \sum_{u \in \mathcal{N}(v)} \mathbf{h}_u^{(k-1)} \right] \right)$$
 
 The final linear projection and sigmoid readout maps node embeddings to an intrinsic behavioral trust score:
 
@@ -164,7 +164,7 @@ Where:
 
 When $T_{\text{effective}}(v) < \tau$ (default $\tau = 0.60$), the root cause is extracted via relative marginal feature deviation against the benign reference profile $\mathbf{b}$:
 
-$$\phi_i(v) = w_i \cdot \frac{\max(0, \, x_{v,i} - b_i)}{b_i + \epsilon}, \quad d^* = \operatorname{argmax}_i \phi_i(v)$$
+$$\phi_i(v) = w_i \cdot \frac{\max(0, \, x_{v,i} - b_i)}{b_i + \epsilon}, \quad d^* = \arg\max_i \phi_i(v)$$
 
 The policy engine executes a proportionate OpenFlow response based on the dominant factor $d^*$:
 
@@ -530,19 +530,3 @@ policy:
   tmux ls
   tmux attach -t propguard
   ```
-
----
-
-## Citation & Academic Context
-
-If you utilize PropGuard in academic research, educational demonstrations, or SDN security evaluations, please cite:
-
-```bibtex
-@misc{propguard2026,
-  author = {Gaurav Gopichand Nanhe},
-  title = {PropGuard: Graph-Propagated Zero-Trust SDN Security},
-  year = {2026},
-  publisher = {GitHub},
-  howpublished = {\url{https://github.com/supergthe1269/PropGuard}}
-}
-```
